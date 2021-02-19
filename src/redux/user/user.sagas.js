@@ -5,6 +5,8 @@ import {
   signInFailure,
   signOutSuccess,
   signOutFailure,
+  signUpSuccess,
+  signUpFailure,
 } from "./user.actions";
 
 import UserActionTypes from "./user.types";
@@ -75,8 +77,29 @@ export function* signOut() {
   }
 }
 
-export function* wathcUserSignOutStart() {
+export function* watchUserSignOutStart() {
   yield takeLatest(UserActionTypes.USER_SIGN_OUT_START, signOut);
+}
+
+export function* signUp({ payload: { email, password, displayName } }) {
+  try {
+    const { user } = yield auth.createUserWithEmailAndPassword(email, password);
+    yield put(signUpSuccess({ user, additionalData: { displayName } }));
+  } catch (error) {
+    yield put(signUpFailure(error.message));
+  }
+}
+
+export function* watchUserSignUpStart() {
+  yield takeLatest(UserActionTypes.USER_SIGN_UP_START, signUp);
+}
+
+export function* signInOnSignUp({ payload: { user, additionalData } }) {
+  yield getSnapshotFromUserAuth(user, additionalData);
+}
+
+export function* watchUserSignUpSuccess() {
+  yield takeLatest(UserActionTypes.USER_SIGN_UP_SUCCESS, signInOnSignUp);
 }
 
 export function* userSagas() {
@@ -84,6 +107,8 @@ export function* userSagas() {
     call(watchGoogleSignInStart),
     call(watchEmailSignInStart),
     call(watchCheckUserSession),
-    call(wathcUserSignOutStart),
+    call(watchUserSignOutStart),
+    call(watchUserSignUpStart),
+    call(watchUserSignUpSuccess),
   ]);
 }
